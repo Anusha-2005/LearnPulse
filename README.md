@@ -1,213 +1,266 @@
-# LearnPulse
+# LearnPulse – AI Powered Education Analytics Platform
 
-A full-stack analytics platform (LearnPulse) that identifies students at risk using machine learning. Faculty upload CSV data, the system computes risk scores via a trained model, and the dashboard visualizes results with department breakdowns, risk distributions, and intervention tracking.
+## Overview
 
-## Features
+**LearnPulse** is a full-stack analytics platform that identifies students at risk of poor academic performance using machine learning. Faculty can upload student data through CSV files, and the system analyzes the data to compute risk scores and visualize insights through an interactive dashboard.
 
-### Session-Based CSV Analysis
-- **Import CSV**: Upload **any** CSV — refined or raw. If the file already matches the 11-column refined schema, risk computation starts immediately. If raw columns are detected (e.g. `ID`, `CGPA`, `Attendance_%`, `MID1_Subject1`), the backend auto-maps them to the model schema and engineers missing features server-side before computing risks. Progress streams back to the browser in real-time.
-- **Refine CSV**: Upload raw data and the browser-side pipeline maps columns, fills missing values (mean imputation), caps outliers (IQR), and produces a downloadable model-ready CSV.
-- **Irrelevant File Detection**: If a CSV has no recognizable student-metric columns (e.g. a course registration list), both Import and Refine stop immediately with a clear message: *"This file doesn't match any student risk records. Please try with a different file."*
-- **Session + Persist**: Analysis data is stored in the browser (Zustand store) and **also persisted to the database** after a successful import. Engagement, Performance, Analytics, Reports, and Interventions pages read **real-time data from backend APIs** (no placeholder or mock data). When no CSV has been imported, all data pages show a single "No Analysis Data — Import CSV" prompt.
+The platform helps educators detect early warning signs, understand learning behavior, and take timely intervention actions.
+
+---
+
+## Key Features
+
+### Student Risk Prediction
+
+* Predicts student performance levels using a trained machine learning model.
+* Classifies students into risk categories based on academic and engagement data.
+
+### CSV Data Import
+
+* Upload student datasets in CSV format.
+* Automatically maps raw columns to the required schema.
+* Performs feature engineering and preprocessing automatically.
+
+### Analytics Dashboard
+
+* Visualizes risk distribution across students.
+* Shows department-level performance insights.
+* Displays attendance and engagement statistics.
 
 ### Faculty Dashboard
-- **Risk Overview**: Total students, at-risk count, average attendance, average risk score.
-- **Risk Distribution**: Pie chart showing High Risk / Moderate / Stable / Safe breakdown.
-- **Department Breakdown**: Bar chart comparing average risk and attendance per department, plus a summary table.
-- **New Analysis**: One click clears the session and returns to the Import/Refine view.
 
-### Session-Gated Pages
-All data pages are gated behind the analysis store — **no data is shown unless a CSV has been imported**. Navigating to any page without imported data displays a centered "No Analysis Data — Import CSV" prompt.
+* View total students and at-risk students.
+* Monitor performance trends.
+* Manage intervention actions for struggling students.
 
-- **Student Directory** (`/students`): Reads from the in-memory session store (from last import). Search, filter by department or risk level.
-- **Student Detail** (`/students/[id]`): Looks up the student from session data. Risk gauge, metric cards, attendance chart, and risk factor analysis. Action buttons work locally via toasts.
-- **Analytics** (`/dashboard/analytics`): Department-level analytics from `GET /api/faculty/analytics/department`. Real DB data.
-- **Engagement** (`/engagement`): LMS heatmaps, effort-vs-output, engagement metric cards from `/api/engagement/*`. Export report uses API data.
-- **Interventions** (`/dashboard/interventions`, `/interventions`): Kanban board and at-risk lists from `/api/analytics/at-risk-students` and related APIs.
-- **Risk Analysis** (`/risk-analysis`): ML metrics and at-risk tables from `/api/analytics/ml-metrics` and faculty endpoints.
-- **Performance** (`/performance`): GPA trends, KPIs, early warnings from `/api/performance/*`. All real-time API data.
-- **Coding Reports** (`/dashboard/reports`): Student coding profiles from `facultyService.getCodingReports()`. Export CSV from API data.
-- **Settings**: General, risk model, notifications, intervention policy, integrations, security, appearance. Theme and sidebar preferences persist to localStorage.
+### Explainable AI
 
-### ML & Prediction
-- **Model**: RandomForestClassifier (scikit-learn) loaded from `ml_models/dropout_risk_model.joblib`.
-- **Features**: The model uses 4 features internally (`attendance_rate`, `lms_score`, `avg_assignment_score`, `avg_quiz_score`), mapped from the 8-column CSV schema via `_metric_to_dataframe`.
-- **SHAP Explainability**: Per-student feature importance via TreeExplainer.
-- **Real-Time Streaming**: Backend streams progress as NDJSON during import; frontend renders live progress bars, risk distribution, and processing log.
+* Uses **SHAP (SHapley Additive Explanations)** to explain model predictions and highlight important features influencing student risk.
+
+---
+
+## Project Architecture
+
+The platform follows a data analytics pipeline:
+
+```
+CSV Dataset
+      ↓
+Data Cleaning & Preprocessing
+      ↓
+Feature Engineering
+      ↓
+Machine Learning Model
+      ↓
+Risk Prediction
+      ↓
+Dashboard Visualization
+```
+
+This architecture enables real-time analytics and predictive insights for student performance monitoring.
+
+---
 
 ## Tech Stack
 
 ### Frontend
-- **Next.js 16** (React 19, App Router), TypeScript 5.x
-- **Tailwind CSS 4.x**, Radix UI, Lucide React icons
-- **Recharts 3.x** for data visualization
-- **Zustand 5.x** for state management (auth store with localStorage, analysis store session-only)
-- **Axios 1.x** with centralized JWT interceptors (`src/lib/api.ts`)
+
+* Next.js (React)
+* TypeScript
+* Tailwind CSS
+* Recharts (Data Visualization)
+* Zustand (State Management)
+* Axios (API communication)
 
 ### Backend
-- **FastAPI** (Python 3.10)
-- **MySQL 8.0** via SQLAlchemy 2.0+ ORM
-- **scikit-learn** (RandomForestClassifier), SHAP, Pandas, NumPy
-- **JWT** (python-jose) + bcrypt (passlib) for auth
-- **Loguru** for logging
+
+* FastAPI
+* Python
+* SQLAlchemy ORM
+* JWT Authentication
+* Loguru logging
+
+### Machine Learning
+
+* Scikit-learn
+* RandomForestClassifier
+* SHAP Explainable AI
+* Pandas & NumPy
+
+### Database
+
+* MySQL / SQLite
 
 ### DevOps
-- **Docker / Docker Compose** — containerized MySQL + backend
-- **108 backend tests** — pytest with in-memory SQLite
 
-## CSV Schema
+* Docker & Docker Compose
+* Pytest for backend testing
 
-Import CSV accepts both **refined** and **raw** CSVs. Raw CSVs are auto-mapped server-side (see *Raw column auto-mapping* below). A refined CSV contains these 11 columns:
+---
 
-| Column | Type | Range | Description |
-|--------|------|-------|-------------|
-| `id` | string | — | Student identifier |
-| `name` | string | — | Student name |
-| `department` | string | — | Department code (e.g. CSE, ECE) |
-| `attendance_rate` | float | 0–100 | Attendance percentage |
-| `engagement_score` | float | 0–100 | LMS engagement metric |
-| `academic_performance_index` | float | 0–10 | GPA-scale academic index (model multiplies by 10) |
-| `login_gap_days` | int | 0+ | Days since last LMS login |
-| `failure_ratio` | float | 0–1 | Failed courses / total courses |
-| `financial_risk_flag` | int | 0 or 1 | Financial risk indicator |
-| `commute_risk_score` | int | 1–4 | Commute difficulty |
-| `semester_performance_trend` | float | -100–100 | Performance trend percentage |
+## Machine Learning Model
 
-**Model feature mapping** (CSV column → model feature):
+The platform uses a **RandomForestClassifier** trained on student academic features.
 
-| CSV Column | Model Feature | Transform |
-|---|---|---|
-| `attendance_rate` | `attendance_rate` | Direct |
-| `engagement_score` | `lms_score` | Direct |
-| `academic_performance_index` | `avg_assignment_score` | ×10 |
-| `semester_performance_trend` | `avg_quiz_score` | Direct |
+Model features include:
 
-The remaining columns (`login_gap_days`, `failure_ratio`, `financial_risk_flag`, `commute_risk_score`) are used for display and future model versions but not consumed by the current model.
+* Attendance Rate
+* LMS Engagement Score
+* Assignment Performance
+* Quiz Scores
+* Academic Performance Index
+* Semester Performance Trend
 
-**Raw column auto-mapping**: When Import detects missing refined columns, it attempts to map common raw column names to the schema:
+The model predicts student risk levels and helps faculty identify students needing support.
 
-| Raw Column(s) | Mapped To | Engineering |
-|---|---|---|
-| `ID`, `Student_ID`, `Roll_No` | `id` | Direct |
-| `Name`, `Student_Name` | `name` | Direct |
-| `Department`, `Dept`, `Branch` | `department` | Direct |
-| `Attendance_%`, `Attendance` | `attendance_rate` | Direct (0-100) |
-| `Engagement_Score`, or `MID1_Subject*` columns | `engagement_score` | Avg MID scores / 30 × 100 |
-| `CGPA`, `GPA` | `academic_performance_index` | Auto-scale if >10 |
-| — | `login_gap_days` | Estimated from engagement |
-| — | `failure_ratio` | Estimated from GPA + attendance |
-| — | `financial_risk_flag` | Default 0 |
-| — | `commute_risk_score` | Default 1 |
-| `Sem1_GPA` + `Sem2_GPA` | `semester_performance_trend` | (Sem2 − Sem1) / Sem1 × 100 |
+---
 
-A sample refined CSV is provided at `backend/data/refined_sample.csv`. The raw dataset at `backend/data/raw/student_dataset_450.csv` can also be imported directly.
+## CSV Dataset Format
+
+A refined CSV should contain the following columns:
+
+| Column                     | Description                |
+| -------------------------- | -------------------------- |
+| id                         | Student ID                 |
+| name                       | Student name               |
+| department                 | Department code            |
+| attendance_rate            | Attendance percentage      |
+| engagement_score           | LMS engagement score       |
+| academic_performance_index | Academic performance index |
+| login_gap_days             | Days since last login      |
+| failure_ratio              | Failed courses ratio       |
+| financial_risk_flag        | Financial risk indicator   |
+| commute_risk_score         | Commute difficulty score   |
+| semester_performance_trend | Performance trend          |
+
+Raw CSV files can also be uploaded; the system automatically maps them to the required format.
+
+---
 
 ## Project Structure
 
 ```
-├── backend/
-│   ├── app/
-│   │   ├── main.py                # FastAPI app with lifespan (model loading)
-│   │   ├── routes/
-│   │   │   ├── auth.py            # Login (faculty-only), register, password reset
-│   │   │   ├── analysis.py        # POST /api/analysis/import — session CSV import with streaming
-│   │   │   ├── analytics.py       # Dashboard analytics, notifications, chat
-│   │   │   ├── students.py        # Student CRUD, case notes, reviewed, escalate, counseling, mentor, email, coding-profile, interventions
-│   │   │   ├── faculty_dashboard.py
-│   │   │   ├── settings.py        # Persist/retrieve app settings
-│   │   │   ├── upload.py          # CSV upload (attendance, marks, assignments)
-│   │   │   ├── performance.py, engagement.py, prediction.py
-│   │   │   ├── student_dashboard.py, student_management.py, frontend.py
-│   │   │   └── ...
-│   │   ├── services/
-│   │   │   ├── risk_model.py           # RiskModel class (train, predict, SHAP)
-│   │   │   ├── realtime_prediction.py  # compute_risk_from_metrics_dict (session analysis)
-│   │   │   ├── shap_explainer.py       # SHAP TreeExplainer
-│   │   │   └── feature_engineering.py  # Feature extraction from raw data
-│   │   ├── models.py              # SQLAlchemy ORM (15+ tables)
-│   │   ├── schemas.py             # Pydantic request/response schemas
-│   │   ├── security.py            # JWT + password hashing
-│   │   └── config.py              # Environment settings
-│   ├── data/
-│   │   ├── refined_sample.csv     # Sample refined CSV for testing
-│   │   └── raw/                   # Raw CSV datasets
-│   ├── ml_models/                 # Pre-trained model (.joblib)
-│   ├── tests/                     # 108 tests (pytest + SQLite)
+LearnPulse
+│
+├── backend
+│   ├── app
+│   │   ├── routes
+│   │   ├── services
+│   │   ├── models
+│   │   ├── schemas
+│   │   └── main.py
+│   │
+│   ├── ml_models
 │   └── requirements.txt
 │
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (app)/             # Authenticated pages (sidebar layout)
-│   │   │   │   ├── dashboard/     # Main dashboard (conditional: landing or charts)
-│   │   │   │   ├── students/      # Student directory + detail pages
-│   │   │   │   ├── engagement/, interventions/, performance/, risk-analysis/
-│   │   │   │   └── profile/, student-dashboard/  # Redirect stubs → /dashboard
-│   │   │   ├── (auth)/            # Login, signup, forgot-password
-│   │   │   └── settings/          # Settings with dedicated sidebar layout
-│   │   ├── components/
-│   │   │   ├── analysis/
-│   │   │   │   └── AnalysisLanding.tsx  # Import/Refine CSV with animated pipeline UI
-│   │   │   ├── dashboard/, settings/, ...
-│   │   │   ├── Sidebar.tsx         # Faculty-only navigation
-│   │   │   └── ChatWidget.tsx      # Context-aware advisor chat
-│   │   ├── store/
-│   │   │   ├── useAuthStore.ts     # Auth (persisted to localStorage)
-│   │   │   ├── analysisStore.ts    # Session-only analysis data (no persistence)
-│   │   │   └── settingsStore.ts    # Settings (persisted to localStorage)
-│   │   ├── utils/
-│   │   │   └── refineCsv.ts        # Client-side CSV refinement (async, step-by-step progress)
-│   │   ├── services/               # API clients (auth, student, faculty)
-│   │   ├── lib/api.ts              # Centralized Axios with JWT interceptors
-│   │   └── context/                # NotificationsContext
-│   └── package.json
+├── frontend
+│   ├── src
+│   │   ├── components
+│   │   ├── pages
+│   │   ├── services
+│   │   └── store
 │
+├── docker
 ├── docker-compose.yml
-├── CHANGELOG.md, SETUP_GUIDE.md, DOCKER_SETUP.md, summary.md
 └── README.md
 ```
 
-## Getting Started
+---
+
+## Installation
 
 ### Prerequisites
-- Node.js v18+, Python 3.9+, Docker Desktop
 
-### Quick Start (Docker)
-```bash
-# Start MySQL + backend
-docker-compose up -d --build
+* Node.js (v18 or higher)
+* Python (3.9+)
+* Docker (optional)
 
-# Wait ~60s for model loading, then verify
-curl http://127.0.0.1:8000/health
+---
 
-# Start frontend
-cd frontend && npm install && npm run dev
+### Backend Setup
+
+Navigate to backend directory:
+
 ```
-
-**Backend**: `http://127.0.0.1:8000` (API docs at `/docs`)
-**Frontend**: `http://localhost:3000`
-
-> **Windows note**: The frontend forces the API base URL to use `127.0.0.1` (replacing `localhost` at runtime) to avoid IPv6 resolution issues with Docker Desktop + WSL2. Use `frontend/.env.local` with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api` if needed. If the backend is not running, the Engagement page shows a banner with a **Retry** button and instructions to start the backend.
-
-### Login
-Faculty-only login. Test credentials: `faculty1@gmail.com` / `password`
-
-Any new email auto-registers as faculty during testing phase.
-
-### Workflow
-1. Login as faculty
-2. Click **Import CSV** to upload any CSV (raw or refined) → the backend auto-maps columns if needed → dashboard populates immediately with risk analysis
-3. Or click **Refine CSV** to process raw data client-side first → download the refined output or import directly to dashboard
-
-## Testing
-
-108 backend tests covering security, models, routes, and frontend-backend contracts:
-
-```bash
 cd backend
-python -m pytest tests/ -v
 ```
 
-## Recent Changes
+Install dependencies:
 
-See **[CHANGELOG.md](./CHANGELOG.md)** for the full log.
+```
+pip install -r requirements.txt
+```
+
+Run backend server:
+
+```
+uvicorn app.main:app --reload --port 3001
+```
+
+API documentation:
+
+```
+http://localhost:3001/docs
+```
+
+---
+
+### Frontend Setup
+
+Navigate to frontend directory:
+
+```
+cd frontend
+```
+
+Install dependencies:
+
+```
+npm install
+```
+
+Start development server:
+
+```
+npm run dev
+```
+
+Open the application:
+
+```
+http://localhost:3000
+```
+
+---
+
+## Usage
+
+1. Login as faculty.
+2. Upload a student CSV dataset.
+3. The system processes the data and computes risk scores.
+4. View analytics and risk distribution on the dashboard.
+5. Identify students requiring intervention.
+
+---
+
+## Future Enhancements
+
+* Personalized learning recommendations
+* Early dropout prediction alerts
+* Integration with Learning Management Systems (LMS)
+* Advanced predictive analytics
+* Automated academic intervention suggestions
+
+---
+
+## Conclusion
+
+LearnPulse demonstrates how **AI and data analytics can improve educational outcomes**. By identifying students at risk early, educators can take proactive steps to improve student success and reduce dropout rates.
+
+---
+
+## Author
+
+**Anusha Palaparthi**
+
+GitHub: https://github.com/Anusha-2005
