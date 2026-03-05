@@ -1,0 +1,51 @@
+import axios from 'axios';
+import apiClient from '@/lib/api';
+
+const base = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api').replace(/localhost/i, '127.0.0.1');
+const AUTH_URL = base + '/auth';
+
+export const authService = {
+    login: async (email: string, password: string) => {
+        const params = new URLSearchParams();
+        params.append('username', email);
+        params.append('password', password);
+
+        try {
+            const response = await axios.post(`${AUTH_URL}/login`, params, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                timeout: 10000,
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Login API Error:", error);
+            throw error;
+        }
+    },
+
+    getCurrentUser: async (token: string) => {
+        try {
+            const response = await apiClient.get('/auth/me', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                timeout: 5000,
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Get Current User Error:", error);
+            throw error;
+        }
+    },
+
+    forgotPassword: async (email: string) => {
+        try {
+            const response = await apiClient.post(`/auth/forgot-password?email=${encodeURIComponent(email)}`);
+            return response.data;
+        } catch (error) {
+            console.error("Forgot Password Error:", error);
+            throw error;
+        }
+    },
+};

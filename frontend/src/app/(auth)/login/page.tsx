@@ -1,0 +1,191 @@
+"use client";
+
+import { ArrowRight, Mail, Lock, Loader2, AlertCircle, ChevronLeft } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { authService } from "@/services/auth";
+
+export default function LoginPage() {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [isForgotMode, setIsForgotMode] = useState(false);
+    const [success, setSuccess] = useState("");
+    const [formData, setFormData] = useState({
+        email: "",
+        password: ""
+    });
+
+    const login = useAuthStore((state) => state.login);
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            await authService.forgotPassword(formData.email);
+            setSuccess("If an account exists, a reset link has been sent.");
+            setTimeout(() => {
+                setIsForgotMode(false);
+                setSuccess("");
+            }, 3000);
+        } catch (err: any) {
+            setError("Failed to process reset request.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const data = await authService.login(formData.email, formData.password);
+
+            const user = {
+                id: data.user_id,
+                email: formData.email,
+                name: data.name || formData.email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+                role: data.role,
+                student_id: data.student_id
+            };
+
+            login(user, data.access_token);
+            router.push("/dashboard");
+        } catch (err: any) {
+            console.error(err);
+            setError(err.response?.data?.detail || "Login failed. Check your credentials.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 max-w-md w-full transition-all duration-300">
+            <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900">LearnPulse — Personalized Learning Platform</h2>
+            </div>
+
+            {error && (
+                <div className="mb-6 bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2 animate-in slide-in-from-top-2">
+                    <AlertCircle size={16} />
+                    {error}
+                </div>
+            )}
+
+            {success && (
+                <div className="mb-6 bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-center gap-2 animate-in slide-in-from-top-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    {success}
+                </div>
+            )}
+
+            {isForgotMode ? (
+                <form onSubmit={handleForgotPassword} className="space-y-4 animate-in slide-in-from-right-8 duration-300">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Email Address</label>
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="email"
+                                required
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                                placeholder="name@university.edu"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all transform active:scale-[0.98]"
+                        >
+                            {isLoading ? <Loader2 className="animate-spin" size={20} /> : "Send Reset Link"}
+                        </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setIsForgotMode(false)}
+                        className="w-full text-center text-sm text-gray-400 hover:text-gray-600 font-medium py-2 flex items-center justify-center gap-1 transition-colors"
+                    >
+                        <ChevronLeft size={14} /> Back to login
+                    </button>
+                </form>
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Email Address</label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                                    placeholder="name@university.edu"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex justify-between items-center mb-1 ml-1">
+                                <label className="block text-sm font-medium text-gray-700">Password</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsForgotMode(true)}
+                                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="password"
+                                    required
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all transform active:scale-[0.98]"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="animate-spin" size={20} />
+                            ) : (
+                                <>
+                                    Login <ArrowRight size={18} />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            <div className="mt-8 text-center pt-6 border-t border-gray-100">
+                <p className="text-xs text-gray-400">
+                    Demo Credentials: <span className="font-mono bg-gray-50 px-1 py-0.5 rounded">faculty1@gmail.com</span> / <span className="font-mono bg-gray-50 px-1 py-0.5 rounded">password</span>
+                </p>
+            </div>
+        </div>
+    );
+}
