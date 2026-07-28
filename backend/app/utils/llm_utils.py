@@ -19,7 +19,7 @@ def generate_llm_insight(prompt: str, provider: Optional[str] = None, model: Opt
             logger.warning("Gemini API key is not configured.")
             return None
             
-        model = model or settings.llm_model or "gemini-2.5-flash"
+        model = model or settings.llm_model or "gemini-3.1-flash-lite"
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
         
         payload = {

@@ -76,9 +76,9 @@ def get_student_insights(payload: AIInsightRequest):
         # 1. Initialize LangChain Google Gemini Model
         model = ChatGoogleGenerativeAI(
             api_key=settings.gemini_api_key,
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             temperature=0.2,
-            timeout=5.0
+            timeout=15.0
         )
 
         # 2. Setup JSON Output Parser
