@@ -9,6 +9,7 @@ Provides:
 """
 
 from typing import List, Dict, Any, Optional
+from app.utils.llm_utils import generate_llm_insight
 
 
 # ---------------------------------------------------------------------------
@@ -201,7 +202,29 @@ def generate_ai_insight(
 ) -> str:
     """
     Generate a plain-English AI insight summary for a student.
+    Attempts to use LLM (Gemini or OpenAI) with rule-based fallback.
     """
+    # 1. Attempt LLM generation
+    try:
+        warnings_str = ", ".join([w.get("message", "") for w in warnings]) if warnings else "None"
+        prompt = (
+            f"You are an AI academic advisor analyzing performance metrics for: {student_name}.\n"
+            f"Cohort/Student Performance Data:\n"
+            f"- GPA history (last {len(gpa_series)} terms): {gpa_series}\n"
+            f"- Total failed subjects: {failed_subjects_total}\n"
+            f"- Overall Risk Level: {risk_category}\n"
+            f"- Warning Flags: {warnings_str}\n\n"
+            f"Write a concise, professional 1-2 sentence academic insight summary for the advisor dashboard. "
+            f"Focus on highlighting key warning signs (like declining GPA or failed courses) and suggest a constructive next action. "
+            f"Do not use markdown formatting (no bold, no bullet points). Be concise and direct."
+        )
+        llm_insight = generate_llm_insight(prompt)
+        if llm_insight:
+            return llm_insight
+    except Exception:
+        pass
+
+    # 2. Rule-based fallback
     parts = []
 
     trend = compute_gpa_trend_direction(gpa_series)

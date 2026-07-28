@@ -4,7 +4,7 @@ Loads and validates environment variables.
 """
 
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 from functools import lru_cache
 
 
@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     
     # CORS - Allow all origins for development. In production, specify exact origins.
     cors_origins: List[str] = ["*"]
+
+    # LLM Configuration
+    gemini_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    llm_provider: str = "gemini"
+    llm_model: Optional[str] = None
 
     # JWT
     secret_key: str = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
