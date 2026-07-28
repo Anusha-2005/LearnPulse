@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use, useMemo } from "react";
+import { useState, use, useMemo, useEffect } from "react";
 import { useAnalysisStore, type AnalysisStudent } from "@/store/analysisStore";
 import { NoDataGate } from "@/components/NoDataGate";
 import {
@@ -32,6 +32,7 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from "recharts";
+import apiClient from "@/lib/api";
 
 export default function StudentDetailPage(props: { params: Promise<{ studentId: string }> }) {
     const params = use(props.params);
@@ -40,6 +41,23 @@ export default function StudentDetailPage(props: { params: Promise<{ studentId: 
         () => students.find((s) => s.id === params.studentId),
         [students, params.studentId],
     );
+
+    const [aiInsight, setAiInsight] = useState<{ summary: string; risk_explanation: string; recommendations: string[] } | null>(null);
+    const [loadingInsight, setLoadingInsight] = useState(true);
+
+    useEffect(() => {
+        setLoadingInsight(true);
+        apiClient.get(`/ai/insights/student/${params.studentId}`)
+            .then(res => {
+                setAiInsight(res.data);
+            })
+            .catch(err => {
+                console.error("Failed to fetch student AI insights", err);
+            })
+            .finally(() => {
+                setLoadingInsight(false);
+            });
+    }, [params.studentId]);
 
     const [isRiskExpanded, setIsRiskExpanded] = useState(true);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -331,6 +349,52 @@ export default function StudentDetailPage(props: { params: Promise<{ studentId: 
                             </div>
                             <div className="bg-gray-50/80 px-6 py-3 text-xs text-gray-500 border-t border-gray-100">
                                 <span>Session analysis — data from your imported CSV</span>
+                            </div>
+                        </div>
+
+                        {/* AI Insights & Recommendations Card */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-indigo-100 overflow-hidden ring-1 ring-indigo-50/50">
+                            <div className="bg-gradient-to-r from-indigo-50 to-white px-6 py-4 border-b border-indigo-100/55 flex items-center justify-between">
+                                <h3 className="font-bold text-indigo-950 text-sm flex items-center gap-2">
+                                    <span className="text-base">✨</span> Personalised AI Advisor Insights
+                                </h3>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 bg-indigo-50/80 px-2 py-1 rounded">Gemini Powered</span>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                {loadingInsight ? (
+                                    <div className="flex flex-col items-center justify-center py-6 space-y-3">
+                                        <div className="flex space-x-2">
+                                            <div className="h-2 w-2 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                            <div className="h-2 w-2 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                            <div className="h-2 w-2 bg-indigo-600 rounded-full animate-bounce"></div>
+                                        </div>
+                                        <p className="text-xs text-indigo-500 font-medium">Drafting personalised insights...</p>
+                                    </div>
+                                ) : aiInsight ? (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Academic Summary</h4>
+                                            <p className="text-sm text-gray-800 font-medium leading-relaxed">{aiInsight.summary}</p>
+                                        </div>
+                                        <div className="border-t border-gray-50 pt-3">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Risk Factors & Context</h4>
+                                            <p className="text-sm text-gray-600 leading-relaxed">{aiInsight.risk_explanation}</p>
+                                        </div>
+                                        <div className="border-t border-gray-50 pt-3">
+                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Recommended Study Interventions</h4>
+                                            <ul className="space-y-2">
+                                                {aiInsight.recommendations.map((rec, i) => (
+                                                    <li key={i} className="text-sm text-gray-700 flex items-start gap-2.5">
+                                                        <span className="text-indigo-500 mt-0.5">•</span>
+                                                        <span className="leading-relaxed">{rec}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-400 italic">No AI insights generated yet.</p>
+                                )}
                             </div>
                         </div>
 

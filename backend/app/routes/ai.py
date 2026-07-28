@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from loguru import logger
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import Student, StudentMetric, RiskScore
 
 from app.config import get_settings
 from app.utils.ai_fallback import generate_heuristic_academic_insight
@@ -137,3 +140,64 @@ def get_student_insights(payload: AIInsightRequest):
         logger.error(f"Gemini LangChain invocation failed: {e}. Falling back to rule-based insights.")
         fallback_data = generate_heuristic_academic_insight(perf, pred, shap)
         return fallback_data
+
+
+@router.get("/insights/student/{student_id}", response_model=AIInsightResponse)
+def get_insights_for_student_by_id(student_id: str, db: Session = Depends(get_db)):
+    """
+    Fetches student performance data and risk details from the database,
+    then generates LLM-powered advisor insights with fallback checks.
+    """
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student {student_id} not found")
+        
+    metrics = db.query(StudentMetric).filter(StudentMetric.student_id == student_id).first()
+    risk_score = db.query(RiskScore).filter(RiskScore.student_id == student_id).first()
+    
+    # Parse SHAP factors
+    feature_importance = {}
+    if risk_score and risk_score.shap_explanation:
+        shap_data = risk_score.shap_explanation
+        if isinstance(shap_data, dict):
+            top_factors = shap_data.get('top_factors', [])
+            for f in top_factors:
+                if isinstance(f, dict) and "feature" in f:
+                    feature_importance[f["feature"]] = f.get("impact", 0.0)
+                    
+    # Reconstruct GPA history based on academic performance index
+    api_val = getattr(metrics, "academic_performance_index", 75.0)
+    current_gpa = round(api_val / 100 * 4.0, 2)
+    trend = getattr(metrics, "semester_performance_trend", 0.0)
+    gpa_history = [
+        round(max(0.0, min(4.0, current_gpa - trend / 100 * 0.5)), 2),
+        round(max(0.0, min(4.0, current_gpa - trend / 100 * 0.25)), 2),
+        current_gpa
+    ]
+    
+    perf_data = {
+        "student_id": student.id,
+        "name": student.name,
+        "gpa_history": gpa_history,
+        "attendance_rate": getattr(metrics, "attendance_rate", 100.0),
+        "lms_score": getattr(metrics, "engagement_score", 100.0),
+        "avg_assignment_score": getattr(metrics, "engagement_score", 100.0) * 0.9 + 5.0,
+        "avg_quiz_score": getattr(metrics, "academic_performance_index", 100.0) * 0.9 + 5.0
+    }
+    
+    prediction = {
+        "risk_score": getattr(risk_score, "risk_score", 0.0),
+        "risk_level": getattr(risk_score, "risk_level", "Low")
+    }
+    
+    shap_values = {
+        "feature_importance": feature_importance
+    }
+    
+    payload = AIInsightRequest(
+        performance_data=perf_data,
+        prediction=prediction,
+        shap_values=shap_values
+    )
+    
+    return get_student_insights(payload)
