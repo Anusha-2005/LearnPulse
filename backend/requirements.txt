@@ -86,3 +86,7 @@ loguru>=0.7.2
 
 # CSV Processing
 kaggle>=1.6.6
+
+# LangChain and Gemini LLM
+langchain>=0.1.0
+langchain-google-genai>=1.0.0

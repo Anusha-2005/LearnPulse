@@ -23,6 +23,7 @@ from loguru import logger
 from app.config import get_settings
 from app.database import SessionLocal, init_db
 from app.routes import (
+    ai,
     analytics,
     analysis,
     auth,
@@ -225,6 +226,7 @@ app.include_router(faculty_dashboard.router)   # /api/faculty/*
 app.include_router(upload.router)              # /api/faculty/upload/*
 app.include_router(settings_routes.router, prefix="/api", tags=["Settings"])
 app.include_router(analysis.router)
+app.include_router(ai.router, prefix="/api", tags=["AI"])
 app.include_router(frontend.router, tags=["Frontend"])
 
 
