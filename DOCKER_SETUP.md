@@ -78,12 +78,12 @@ docker-compose down
 
 **Connect to MySQL from host machine**:
 ```bash
-mysql -h 127.0.0.1 -P 3306 -u root -pSanjith_2005 student_dropout_db
+mysql -h 127.0.0.1 -P 3306 -u root -panurag0205 student_dropout_db
 ```
 
 **Inside Docker container**:
 ```bash
-docker exec -it student_dropout_mysql mysql -u root -pSanjith_2005 student_dropout_db
+docker exec -it student_dropout_mysql mysql -u root -panurag0205 student_dropout_db
 ```
 
 ---
@@ -107,7 +107,7 @@ docker exec -it student_dropout_mysql mysql -u root -pSanjith_2005 student_dropo
   ```
   Update `.env`:
   ```
-  DATABASE_URL=mysql+pymysql://root:Sanjith_2005@localhost:3307/student_dropout_db
+  DATABASE_URL=mysql+pymysql://root:anurag0205@localhost:3307/student_dropout_db
   ```
 
 **Issue**: "Port 8000 already in use"

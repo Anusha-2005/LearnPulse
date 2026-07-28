@@ -71,7 +71,7 @@ pip install -r requirements.txt
 **Option A: Use Docker MySQL**
 ```bash
 docker run -d --name student_dropout_mysql \
-  -e MYSQL_ROOT_PASSWORD=Sanjith_2005 \
+  -e MYSQL_ROOT_PASSWORD=anurag0205 \
   -e MYSQL_DATABASE=student_dropout_db \
   -p 3306:3306 \
   mysql:8.0
@@ -84,7 +84,7 @@ CREATE DATABASE student_dropout_db;
 
 Update `.env` file if needed:
 ```
-DATABASE_URL=mysql+pymysql://root:Sanjith_2005@localhost:3306/student_dropout_db
+DATABASE_URL=mysql+pymysql://root:anurag0205@localhost:3306/student_dropout_db
 ```
 
 ### Step 3: Initialize Database & Load Data
@@ -194,7 +194,7 @@ python -m pytest tests/test_integration.py -v     # Frontend-backend contract
 
 ### 2. Verify Database
 ```bash
-mysql -h 127.0.0.1 -P 3306 -u root -pSanjith_2005 student_dropout_db
+mysql -h 127.0.0.1 -P 3306 -u root -panurag0205 student_dropout_db
 
 # Run queries
 SELECT COUNT(*) FROM students;  -- Should show 450
@@ -342,7 +342,7 @@ python scripts/load_custom_dataset.py
 **Issue: Backend server won't start**
 ```bash
 # Check if database is running
-mysql -h 127.0.0.1 -P 3306 -u root -pSanjith_2005
+mysql -h 127.0.0.1 -P 3306 -u root -panurag0205
 
 # Check if port 8000 is available
 netstat -ano | findstr :8000
