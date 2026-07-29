@@ -28,6 +28,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            try {
+              const theme = localStorage.getItem('app-theme') || 'light';
+              document.documentElement.setAttribute('data-theme', theme);
+              if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+              } else {
+                document.documentElement.classList.remove('dark');
+              }
+            } catch (e) {}
+          })();
+        ` }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased text-white`}
       >
