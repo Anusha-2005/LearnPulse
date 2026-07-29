@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/Sidebar";
-import { Bell, User, LogOut, Settings } from "lucide-react";
+import { Bell, User, LogOut, Settings, Lightbulb } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { NotificationBell } from "@/components/NotificationBell";
 
@@ -34,6 +34,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, logout, isAuthenticated } = useAuthStore();
+
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("app-theme") || "light";
+    return "light";
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "light" ? "dark" : "light";
+    setTheme(nextTheme);
+    localStorage.setItem("app-theme", nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("app-theme") || "light";
+    setTheme(savedTheme);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -74,6 +96,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-4">
+              <button
+                onClick={toggleTheme}
+                title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100/60 border border-neutral-200 text-neutral-600 hover:bg-neutral-200/50 transition-all dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-700/50"
+              >
+                <Lightbulb size={18} className={theme === "dark" ? "fill-amber-400 text-amber-400" : "text-neutral-500"} />
+              </button>
 
               <NotificationBell />
 
