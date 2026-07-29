@@ -47,7 +47,6 @@ export function Sidebar({ activePath }: SidebarProps) {
     { label: "Upload Data", href: "/dashboard/upload", icon: <Upload size={20} /> },
     { label: "Engagement", href: "/engagement", icon: <ClipboardList size={20} /> },
     { label: "Interventions", href: "/interventions", icon: <ClipboardList size={20} /> },
-    { label: "Reports", href: "/dashboard/reports", icon: <FileText size={20} /> },
     { label: "Settings", href: "/settings", icon: <SettingsIcon size={20} /> },
   ];
 
